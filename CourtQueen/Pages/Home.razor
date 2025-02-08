@@ -60,6 +60,22 @@ else if (isQueenCourt || Tournament.RoundNumber == 11)
     {
         <h1>The queen is @Tournament.QueenName!</h1>
     }
+    
+    <h2>Leaderboard</h2>
+    <table>
+        <tr>
+            <th>Player</th>
+            <th>Total Wins</th>
+        </tr>
+        @foreach (var player in Tournament.GetLeaderboard())
+        {
+            <tr>
+                <td>@player.Name</td>
+                <td>@player.Wins</td>
+            </tr>
+        }
+    </table>
+
 }
 else
 {
