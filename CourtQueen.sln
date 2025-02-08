@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CourtQueen", "CourtQueen\CourtQueen.csproj", "{68D40298-4E9A-4E19-9F49-7FA3252D1BFB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CourtQueen.Tests", "CourtQueen.Tests\CourtQueen.Tests.csproj", "{F4228743-BB3C-4AE8-8EB1-313D0A3A6340}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{68D40298-4E9A-4E19-9F49-7FA3252D1BFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68D40298-4E9A-4E19-9F49-7FA3252D1BFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68D40298-4E9A-4E19-9F49-7FA3252D1BFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68D40298-4E9A-4E19-9F49-7FA3252D1BFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4228743-BB3C-4AE8-8EB1-313D0A3A6340}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4228743-BB3C-4AE8-8EB1-313D0A3A6340}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4228743-BB3C-4AE8-8EB1-313D0A3A6340}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4228743-BB3C-4AE8-8EB1-313D0A3A6340}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

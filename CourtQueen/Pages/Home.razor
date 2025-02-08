@@ -1,0 +1,326 @@
+﻿@page "/"
+@using CourtQueen.Models
+@inject ILocalStorageService LocalStorage
+
+<h1>Pickleball Queens Court Tournament</h1>
+
+@if (!isTournamentStarted)
+{
+    <h2>Enter Player Names & Assign Courts</h2>
+    <table>
+        <tr>
+            <th>Player Name</th>
+            <th>Starting Court</th>
+        </tr>
+        @for (int i = 0; i < 32; i++)
+        {
+            <tr>
+                <td><input @bind="playerNames[i]" placeholder="Enter player name"/></td>
+                <td>
+                    <select @bind="playerCourts[i]">
+                        @foreach (var court in courtOptions)
+                        {
+                            <option value="@court.Key">@court.Value</option>
+                        }
+                    </select>
+                </td>
+            </tr>
+        }
+    </table>
+
+    <button @onclick="StartTournament">Start Tournament</button>
+    <button @onclick="PreFillSamplePlayers">Pre-Fill Sample Players</button>
+}
+else if (isQueenCourt || Tournament.RoundNumber == 11)
+{
+    <p>Round: @Tournament.RoundNumber</p>
+
+    <h2>Queens Court</h2>
+    <table border="1">
+        <tr>
+            <td>@GetPlayerName(0, 1)</td>
+            <td>@GetPlayerName(0, 2)</td>
+        </tr>
+        <tr>
+            <td>@GetPlayerName(0, 3)</td>
+            <td>@GetPlayerName(0, 4)</td>
+        </tr>
+    </table>
+
+    <label>Select Winning Pair:</label>
+    <select value="@selectedWinningPairs[0]" @onchange="@(e => UpdateSelectedPair(0, e.Value))">
+        <option value="">Select</option>
+        <option value="@GetWinningPair(0, 1, 2)">@GetWinningPair(0, 1, 2)</option>
+        <option value="@GetWinningPair(0, 3, 4)">@GetWinningPair(0, 3, 4)</option>
+    </select>
+
+    <button @onclick="CrownQueen">Crown Queen</button>
+
+    @if (!string.IsNullOrEmpty(Tournament.QueenName))
+    {
+        <h1>The queen is @Tournament.QueenName!</h1>
+    }
+}
+else
+{
+    <p>Round: @Tournament.RoundNumber</p>
+
+    <h2>Court Assignments</h2>
+    @for (int i = 0; i < 8; i++)
+    {
+        var courtIndex = i; // ✅ Capture a unique copy of `i` for each loop iteration
+
+        <h3>@courtOptions[courtIndex]</h3>
+        <table border="1">
+            <tr>
+                <td>@GetPlayerName(courtIndex, 1)</td>
+                <td>@GetPlayerName(courtIndex, 2)</td>
+            </tr>
+            <tr>
+                <td>@GetPlayerName(courtIndex, 3)</td>
+                <td>@GetPlayerName(courtIndex, 4)</td>
+            </tr>
+        </table>
+
+        <label>Select Winning Pair:</label>
+        <select value="@selectedWinningPairs[i]" @onchange="@(e => UpdateSelectedPair(courtIndex, e.Value))">
+            <option value="">Select</option>
+            <option value="@GetWinningPair(courtIndex, 1, 2)">@GetWinningPair(courtIndex, 1, 2)</option>
+            <option value="@GetWinningPair(courtIndex, 3, 4)">@GetWinningPair(courtIndex, 3, 4)</option>
+        </select>
+    }
+
+    <button @onclick="AdvanceRound">Advance to Next Round</button>
+
+    <h2>Leaderboard</h2>
+    <table>
+        <tr>
+            <th>Player</th>
+            <th>Total Wins</th>
+        </tr>
+        @foreach (var player in Tournament.GetLeaderboard())
+        {
+            <tr>
+                <td>@player.Name</td>
+                <td>@player.Wins</td>
+            </tr>
+        }
+    </table>
+
+    <div>
+        <button @onclick="Restart">Restart Tournament</button>
+    </div>
+}
+
+@code {
+    private Tournament Tournament = new();
+    private bool isTournamentStarted = false;
+    private bool isQueenCourt = false;
+    private string[] playerNames = new string[32];
+    private int[] playerCourts = new int[32]; // Stores court assignments
+    private Dictionary<int, string> selectedWinningPairs = new();
+
+    // Court mapping for dropdown selection
+    private Dictionary<int, string> courtOptions = new()
+    {
+        { 0, "Queen’s Court" },
+        { 1, "Jack’s Court" },
+        { 2, "Court 10" },
+        { 3, "Court 9" },
+        { 4, "Court 8" },
+        { 5, "Court 7" },
+        { 6, "Court 6" },
+        { 7, "Court 5" }
+    };
+
+    private void UpdateSelectedPair(int court, object value)
+    {
+        if (!selectedWinningPairs.ContainsKey(court))
+        {
+            selectedWinningPairs[court] = ""; // Initialize if missing
+        }
+
+        selectedWinningPairs[court] = value.ToString() ?? "";
+        Console.WriteLine($"Court {court} selected winners: {selectedWinningPairs[court]}"); // Debug log
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // ✅ Step 1: Try to load saved tournament data
+        var savedTournament = await LocalStorage.GetItemAsync<Tournament>("tournament");
+
+        if (savedTournament != null && savedTournament.Players.Any())
+        {
+            // ✅ Step 2: If data exists, load it
+            Tournament = savedTournament;
+            isTournamentStarted = true;
+        }
+        else
+        {
+            // ✅ Step 3: Initialize a fresh tournament if no data is found
+            Tournament = new Tournament();
+            isTournamentStarted = false;
+        }
+
+        // ✅ Step 4: Ensure each court has an entry in `selectedWinningPairs`
+        for (int i = 0; i < 8; i++)
+        {
+            if (!selectedWinningPairs.ContainsKey(i))
+            {
+                selectedWinningPairs[i] = ""; // Initialize empty selection
+            }
+        }
+
+        StateHasChanged(); // ✅ Force UI update after loading data
+    }
+
+    private async Task CrownQueen()
+    {
+        Tournament.CrownQueen();
+    }
+
+
+    private async Task StartTournament()
+    {
+        // Step 1: Ensure courtCounts dictionary has all 8 courts before accessing them
+        var courtCounts = new Dictionary<int, int>();
+        for (int i = 0; i < 8; i++)
+        {
+            courtCounts[i] = 0; // Initialize courts with zero
+        }
+
+        // Step 2: Validate that exactly 4 players per court are assigned
+        foreach (var court in playerCourts)
+        {
+            if (!courtCounts.ContainsKey(court))
+            {
+                return; // Prevents an invalid court assignment
+            }
+
+            courtCounts[court]++; // Increment court player count
+        }
+
+        // Step 3: Check if any court has more or fewer than 4 players
+        if (courtCounts.Any(kv => kv.Value != 4))
+        {
+            return; // Prevent starting if courts are not evenly distributed
+        }
+
+        // Step 4: Reset courtCounts to track position assignment
+        for (int i = 0; i < 8; i++)
+        {
+            courtCounts[i] = 0;
+        }
+
+        // Step 5: Assign players to courts based on the validated court distribution
+        Tournament.Players.Clear();
+        for (int i = 0; i < 32; i++)
+        {
+            int assignedCourt = playerCourts[i];
+            int assignedPosition = courtCounts[assignedCourt] + 1; // Assign positions in order 1-4
+
+            Tournament.Players.Add(new Player
+            {
+                Name = string.IsNullOrWhiteSpace(playerNames[i]) ? $"Player{i + 1}" : playerNames[i],
+                Court = assignedCourt,
+                Position = assignedPosition // Assign position AFTER incrementing
+            });
+
+            courtCounts[assignedCourt]++; // Increment AFTER assigning position
+        }
+
+        isTournamentStarted = true;
+        await LocalStorage.SetItemAsync("tournament", Tournament);
+    }
+
+    private void PreFillSamplePlayers()
+    {
+        var sampleNames = new string[]
+        {
+            "Alice", "Beth", "Cathy", "Diana", "Eva", "Fiona", "Grace", "Hannah",
+            "Ivy", "Jane", "Kara", "Lena", "Mia", "Nina", "Olivia", "Paula",
+            "Quinn", "Rachel", "Sara", "Tina", "Uma", "Vicky", "Wendy", "Xena",
+            "Yara", "Zoe", "Anna", "Bella", "Clara", "Donna", "Emma", "Faye"
+        };
+
+        var rnd = new Random();
+        var shuffledNames = sampleNames.OrderBy(_ => rnd.Next()).ToArray();
+
+        // Distribute 4 players per court randomly
+        for (int i = 0; i < 32; i++)
+        {
+            playerNames[i] = shuffledNames[i];
+            playerCourts[i] = i / 4; // Ensures exactly 4 players per court
+        }
+    }
+
+    private async Task AdvanceRound()
+    {
+        // Check if all courts have a winner selected
+        if (selectedWinningPairs.Count < 8 || selectedWinningPairs.Values.Any(value => string.IsNullOrEmpty(value)))
+        {
+            Console.WriteLine("ERROR: Not all courts have a winning pair selected!");
+            return;
+        }
+
+        // Convert selected winners into dictionary format for RotatePlayers()
+        var winners = selectedWinningPairs
+            .Where(kv => !string.IsNullOrEmpty(kv.Value))
+            .ToDictionary(kv => kv.Key, kv => kv.Value.Split(',').ToList());
+
+        // ✅ Step 1: Call RotatePlayers
+        Tournament.RotatePlayers(winners);
+
+        // Rotate players is responsible for incrementing the round number
+        if (Tournament.RoundNumber == 11)
+        {
+            isQueenCourt = true;
+        }
+
+
+        // ✅ Step 2: Reassign Tournament (Forces UI Refresh)
+        Tournament = new Tournament
+        {
+            Players = new List<Player>(Tournament.Players), // Create a new instance
+            RoundNumber = Tournament.RoundNumber
+        };
+
+        await LocalStorage.SetItemAsync("tournament", Tournament);
+
+        for (int i = 0; i < 8; i++)
+        {
+            selectedWinningPairs[i] = ""; // Clear the selection
+        }
+
+
+        // ✅ Step 3: Force UI refresh
+        StateHasChanged();
+    }
+
+    private async Task Restart()
+    {
+        isTournamentStarted = false;
+        Tournament = new();
+        await LocalStorage.ClearAll();
+    }
+
+
+    private string GetPlayerName(int court, int pos)
+    {
+        return Tournament.Players.FirstOrDefault(p => p.Court == court && p.Position == pos)?.Name ?? "";
+    }
+
+    private string GetWinningPair(int court, int pos1, int pos2)
+    {
+        var p1 = GetPlayerName(court, pos1);
+        var p2 = GetPlayerName(court, pos2);
+
+        if (!string.IsNullOrEmpty(p1) && !string.IsNullOrEmpty(p2))
+        {
+            return $"{p1},{p2}";
+        }
+
+        return "Invalid Pair"; // Prevent empty dropdown values
+    }
+
+}
